@@ -5,6 +5,7 @@ import binascii
 import os
 import sys
 from bluepy import btle
+import pprint as pp
 
 if os.getenv('C', '1') == '0':
     ANSI_RED = ''
@@ -22,6 +23,8 @@ else:
     ANSI_WHITE = ANSI_CSI + '37m'
     ANSI_OFF = ANSI_CSI + '0m'
 
+
+bluetooth_devices = {}
 
 def dump_services(dev):
     services = sorted(dev.services, key=lambda s: s.hndStart)
@@ -71,6 +74,7 @@ class ScanPrint(btle.DefaultDelegate):
             if self.opts.new:
                 return
             status = "update"
+            return
         else:
             if not self.opts.all:
                 return
@@ -79,20 +83,33 @@ class ScanPrint(btle.DefaultDelegate):
         if dev.rssi < self.opts.sensitivity:
             return
 
+
+
+        
+
         print ('    Device (%s): %s (%s), %d dBm %s' %
                (status,
                    ANSI_WHITE + dev.addr + ANSI_OFF,
                    dev.addrType,
                    dev.rssi,
-                   ('' if dev.connectable else '(not connectable)'))
+                   ('(connectable)' if dev.connectable else '(not connectable)'))
                )
         for (sdid, desc, val) in dev.getScanData():
             if sdid in [8, 9]:
                 print ('\t' + desc + ': \'' + ANSI_CYAN + val + ANSI_OFF + '\'')
             else:
                 print ('\t' + desc + ': <' + val + '>')
+                manufacturer = (val if 'Manufacturer' in desc else None)
+ 
         if not dev.scanData:
             print ('\t(no data)')
+
+        bluetooth_devices[dev.addr] = \
+            {'rssi': dev.rssi,
+             'conn': ('connectable' if dev.connectable else 'not connectable'),
+             'add_type': dev.addrType,
+             'manufacturer': manufacturer} 
+
         print
 
 
@@ -138,3 +155,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    pp.pprint(bluetooth_devices)
+
