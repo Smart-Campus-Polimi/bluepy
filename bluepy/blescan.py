@@ -7,6 +7,8 @@ import sys
 from bluepy import btle
 import pprint as pp
 
+bluetooth_devices = {}
+
 if os.getenv('C', '1') == '0':
     ANSI_RED = ''
     ANSI_GREEN = ''
@@ -24,7 +26,44 @@ else:
     ANSI_OFF = ANSI_CSI + '0m'
 
 
-bluetooth_devices = {}
+
+def printInfo(bt_devices):
+    n_conn = 0
+    n_non_conn = 0
+    n_non_manufacturer = 0
+    n_manufacturer = 0
+    n_random = 0
+    n_public = 0
+    n_named = 0
+    n_unnamed = 0
+
+    for key, value in bt_devices.items():
+        
+        if value['conn'] == 'connectable':
+            n_conn +=1 
+        else:
+            n_non_conn +=1
+
+        if value['manufacturer'] == None:
+            n_non_manufacturer += 1
+        else:
+            n_manufacturer += 1
+
+        if value['addr_type'] == 'random':
+            n_random +=1
+        else:
+            n_public +=1
+
+        if value['name'] == None:
+            n_unnamed += 1
+        else:
+            n_named += 1
+
+    print("Total devices: ", len(bluetooth_devices))
+    print('conn, non conn:', n_conn, n_non_conn)
+    print('manu, non manu:', n_non_manufacturer, n_manufacturer)
+    print('random, public:', n_random, n_public)
+    print('named, unnamed', n_named, n_unnamed)
 
 def dump_services(dev):
     services = sorted(dev.services, key=lambda s: s.hndStart)
@@ -70,6 +109,7 @@ class ScanPrint(btle.DefaultDelegate):
     def handleDiscovery(self, dev, isNewDev, isNewData):
         if isNewDev:
             status = "new"
+            devName = None
         elif isNewData:
             if self.opts.new:
                 return
@@ -84,9 +124,6 @@ class ScanPrint(btle.DefaultDelegate):
             return
 
 
-
-        
-
         print ('    Device (%s): %s (%s), %d dBm %s' %
                (status,
                    ANSI_WHITE + dev.addr + ANSI_OFF,
@@ -94,9 +131,11 @@ class ScanPrint(btle.DefaultDelegate):
                    dev.rssi,
                    ('(connectable)' if dev.connectable else '(not connectable)'))
                )
+
         for (sdid, desc, val) in dev.getScanData():
             if sdid in [8, 9]:
                 print ('\t' + desc + ': \'' + ANSI_CYAN + val + ANSI_OFF + '\'')
+                devName = (val if 'Name' in desc else None)
             else:
                 print ('\t' + desc + ': <' + val + '>')
                 manufacturer = (val if 'Manufacturer' in desc else None)
@@ -104,11 +143,13 @@ class ScanPrint(btle.DefaultDelegate):
         if not dev.scanData:
             print ('\t(no data)')
 
+        #store devices
         bluetooth_devices[dev.addr] = \
             {'rssi': dev.rssi,
              'conn': ('connectable' if dev.connectable else 'not connectable'),
-             'add_type': dev.addrType,
-             'manufacturer': manufacturer} 
+             'addr_type': dev.addrType,
+             'manufacturer': manufacturer, 
+             'name': devName} 
 
         print
 
@@ -156,4 +197,6 @@ def main():
 if __name__ == "__main__":
     main()
     pp.pprint(bluetooth_devices)
+    printInfo(bluetooth_devices)
+
 
