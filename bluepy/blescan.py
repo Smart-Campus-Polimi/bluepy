@@ -6,8 +6,10 @@ import os
 import sys
 from bluepy import btle
 import pprint as pp
+import randomize
 
 bluetooth_devices = {}
+bluetooth_device_all = {}
 
 if os.getenv('C', '1') == '0':
     ANSI_RED = ''
@@ -25,6 +27,81 @@ else:
     ANSI_WHITE = ANSI_CSI + '37m'
     ANSI_OFF = ANSI_CSI + '0m'
 
+def create_dev_tree(bluetooth_devices):
+    conn = 0
+    non_conn = 0
+
+    c_manuf = 0
+    c_m_rand = 0
+    c_m_pub = 0
+    c_m_r_nam = 0
+    c_m_r_unam = 0
+    c_m_p_nam = 0
+    c_m_p_unam = 0
+
+
+    c_non_manuf = 0
+    c_nm_rand = 0
+    c_nm_pub = 0
+    c_nm_r_nam = 0
+    c_nm_r_unam = 0
+    c_nm_p_nam = 0
+    c_nm_p_unam = 0
+
+
+    for key, val in bluetooth_devices.items():
+        if val['conn'] == 'connectable':
+            conn +=1
+
+            if val['manufacturer'] == None:
+                c_non_manuf += 1
+                if val['addr_type'] == 'public':
+                    c_nm_pub += 1
+                    if val['name'] == None:
+                        c_mm_p_unam += 1
+                    else:
+                        c_nm_p_nam += 1
+                elif val['addr_type'] == 'random':
+                    c_m_rand += 1
+                    if val['name'] == None:
+                        c_nm_r_unam += 1
+                    else:
+                        c_nm_r_nam += 1
+            else:
+                c_manuf += 1
+                if val['addr_type'] == 'public':
+                    c_m_pub += 1
+                    if val['name'] == None:
+                        c_m_p_unam += 1
+                    else:
+                        c_m_p_nam += 1
+                elif val['addr_type'] == 'random':
+                    c_m_rand += 1
+                    if val['name'] == None:
+                        c_m_r_unam += 1
+                    else:
+                        c_m_r_nam += 1
+
+
+        else:
+            non_conn +=1
+
+    print ("conn: ", conn)
+    print ("\tmanufacturer: ", c_manuf)
+    print ("\t\trandom: ", c_m_rand)
+    print ("\t\t\tnamed: ", c_m_r_nam)
+    print ("\t\t\tunnamed: ", c_m_r_unam)
+    print ("\t\tpublic: ", c_m_pub)
+    print ("\t\t\tnamed: ", c_m_p_nam)
+    print ("\t\t\tunnamed: ", c_m_p_unam)
+    print ("\tnon manufacturer: ", c_non_manuf)
+    print ("\t\trandom: ", c_nm_rand)
+    print ("\t\t\tnamed: ", c_nm_r_nam)
+    print ("\t\t\tunnamed: ", c_nm_r_unam)
+    print ("\t\tpublic: ", c_nm_pub)
+    print ("\t\t\tnamed: ", c_nm_p_nam)
+    print ("\t\t\tunnamed: ", c_nm_p_unam)
+    print ("non conn", non_conn)
 
 
 def printInfo(bt_devices):
@@ -59,7 +136,8 @@ def printInfo(bt_devices):
         else:
             n_named += 1
 
-    print("Total devices: ", len(bluetooth_devices))
+    print("Total devices \"unique\": ", len(bluetooth_devices))
+    print("Total device all", len(bluetooth_device_all))
     print('conn, non conn:', n_conn, n_non_conn)
     print('manu, non manu:', n_non_manufacturer, n_manufacturer)
     print('random, public:', n_random, n_public)
@@ -123,7 +201,7 @@ class ScanPrint(btle.DefaultDelegate):
         if dev.rssi < self.opts.sensitivity:
             return
 
-
+        
         print ('    Device (%s): %s (%s), %d dBm %s' %
                (status,
                    ANSI_WHITE + dev.addr + ANSI_OFF,
@@ -131,6 +209,7 @@ class ScanPrint(btle.DefaultDelegate):
                    dev.rssi,
                    ('(connectable)' if dev.connectable else '(not connectable)'))
                )
+        
 
         for (sdid, desc, val) in dev.getScanData():
             if sdid in [8, 9]:
@@ -142,14 +221,37 @@ class ScanPrint(btle.DefaultDelegate):
  
         if not dev.scanData:
             print ('\t(no data)')
+                #store devices
 
-        #store devices
-        bluetooth_devices[dev.addr] = \
-            {'rssi': dev.rssi,
-             'conn': ('connectable' if dev.connectable else 'not connectable'),
-             'addr_type': dev.addrType,
-             'manufacturer': manufacturer, 
-             'name': devName} 
+
+        siblings = randomize.generate_possible_siblings(dev.addr)
+
+        is_in = False
+        in_list = []
+
+        bluetooth_device_all[dev.addr] = \
+                {'rssi': dev.rssi,
+                 'conn': ('connectable' if dev.connectable else 'not connectable'),
+                 'addr_type': dev.addrType,
+                 'manufacturer': manufacturer, 
+                 'name': devName
+                 }
+
+        for mac in siblings:
+            if mac in bluetooth_devices:
+                is_in = True
+                mac_father = mac
+        
+        if not is_in:
+            bluetooth_devices[dev.addr] = \
+                {'rssi': dev.rssi,
+                 'conn': ('connectable' if dev.connectable else 'not connectable'),
+                 'addr_type': dev.addrType,
+                 'manufacturer': manufacturer, 
+                 'name': devName,
+                 'derivate': []} 
+        else:
+           bluetooth_devices[mac_father]['derivate'].append(dev.addr)
 
         print
 
@@ -199,4 +301,4 @@ if __name__ == "__main__":
     pp.pprint(bluetooth_devices)
     printInfo(bluetooth_devices)
 
-
+    create_dev_tree(bluetooth_devices)
