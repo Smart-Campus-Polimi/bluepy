@@ -7,6 +7,13 @@ import sys
 from bluepy import btle
 import pprint as pp
 import randomize
+import info
+import Queue
+import os
+from time import strftime, localtime, sleep
+from datetime import datetime
+
+import ReadPeople
 
 bluetooth_devices = {}
 bluetooth_device_all = {}
@@ -27,121 +34,7 @@ else:
     ANSI_WHITE = ANSI_CSI + '37m'
     ANSI_OFF = ANSI_CSI + '0m'
 
-def create_dev_tree(bluetooth_devices):
-    conn = 0
-    non_conn = 0
 
-    c_manuf = 0
-    c_m_rand = 0
-    c_m_pub = 0
-    c_m_r_nam = 0
-    c_m_r_unam = 0
-    c_m_p_nam = 0
-    c_m_p_unam = 0
-
-
-    c_non_manuf = 0
-    c_nm_rand = 0
-    c_nm_pub = 0
-    c_nm_r_nam = 0
-    c_nm_r_unam = 0
-    c_nm_p_nam = 0
-    c_nm_p_unam = 0
-
-
-    for key, val in bluetooth_devices.items():
-        if val['conn'] == 'connectable':
-            conn +=1
-
-            if val['manufacturer'] == None:
-                c_non_manuf += 1
-                if val['addr_type'] == 'public':
-                    c_nm_pub += 1
-                    if val['name'] == None:
-                        c_mm_p_unam += 1
-                    else:
-                        c_nm_p_nam += 1
-                elif val['addr_type'] == 'random':
-                    c_m_rand += 1
-                    if val['name'] == None:
-                        c_nm_r_unam += 1
-                    else:
-                        c_nm_r_nam += 1
-            else:
-                c_manuf += 1
-                if val['addr_type'] == 'public':
-                    c_m_pub += 1
-                    if val['name'] == None:
-                        c_m_p_unam += 1
-                    else:
-                        c_m_p_nam += 1
-                elif val['addr_type'] == 'random':
-                    c_m_rand += 1
-                    if val['name'] == None:
-                        c_m_r_unam += 1
-                    else:
-                        c_m_r_nam += 1
-
-
-        else:
-            non_conn +=1
-
-    print ("conn: ", conn)
-    print ("\tmanufacturer: ", c_manuf)
-    print ("\t\trandom: ", c_m_rand)
-    print ("\t\t\tnamed: ", c_m_r_nam)
-    print ("\t\t\tunnamed: ", c_m_r_unam)
-    print ("\t\tpublic: ", c_m_pub)
-    print ("\t\t\tnamed: ", c_m_p_nam)
-    print ("\t\t\tunnamed: ", c_m_p_unam)
-    print ("\tnon manufacturer: ", c_non_manuf)
-    print ("\t\trandom: ", c_nm_rand)
-    print ("\t\t\tnamed: ", c_nm_r_nam)
-    print ("\t\t\tunnamed: ", c_nm_r_unam)
-    print ("\t\tpublic: ", c_nm_pub)
-    print ("\t\t\tnamed: ", c_nm_p_nam)
-    print ("\t\t\tunnamed: ", c_nm_p_unam)
-    print ("non conn", non_conn)
-
-
-def printInfo(bt_devices):
-    n_conn = 0
-    n_non_conn = 0
-    n_non_manufacturer = 0
-    n_manufacturer = 0
-    n_random = 0
-    n_public = 0
-    n_named = 0
-    n_unnamed = 0
-
-    for key, value in bt_devices.items():
-        
-        if value['conn'] == 'connectable':
-            n_conn +=1 
-        else:
-            n_non_conn +=1
-
-        if value['manufacturer'] == None:
-            n_non_manufacturer += 1
-        else:
-            n_manufacturer += 1
-
-        if value['addr_type'] == 'random':
-            n_random +=1
-        else:
-            n_public +=1
-
-        if value['name'] == None:
-            n_unnamed += 1
-        else:
-            n_named += 1
-
-    print("Total devices \"unique\": ", len(bluetooth_devices))
-    print("Total device all", len(bluetooth_device_all))
-    print('conn, non conn:', n_conn, n_non_conn)
-    print('manu, non manu:', n_non_manufacturer, n_manufacturer)
-    print('random, public:', n_random, n_public)
-    print('named, unnamed', n_named, n_unnamed)
 
 def dump_services(dev):
     services = sorted(dev.services, key=lambda s: s.hndStart)
@@ -201,7 +94,7 @@ class ScanPrint(btle.DefaultDelegate):
         if dev.rssi < self.opts.sensitivity:
             return
 
-        
+        '''
         print ('    Device (%s): %s (%s), %d dBm %s' %
                (status,
                    ANSI_WHITE + dev.addr + ANSI_OFF,
@@ -209,14 +102,14 @@ class ScanPrint(btle.DefaultDelegate):
                    dev.rssi,
                    ('(connectable)' if dev.connectable else '(not connectable)'))
                )
-        
+        '''
 
         for (sdid, desc, val) in dev.getScanData():
             if sdid in [8, 9]:
-                print ('\t' + desc + ': \'' + ANSI_CYAN + val + ANSI_OFF + '\'')
+               # print ('\t' + desc + ': \'' + ANSI_CYAN + val + ANSI_OFF + '\'')
                 devName = (val if 'Name' in desc else None)
             else:
-                print ('\t' + desc + ': <' + val + '>')
+                #print ('\t' + desc + ': <' + val + '>')
                 manufacturer = (val if 'Manufacturer' in desc else None)
  
         if not dev.scanData:
@@ -275,11 +168,31 @@ def main():
     arg = parser.parse_args(sys.argv[1:])
 
     btle.Debugging = arg.verbose
+    people = Queue.Queue(200)
+
+    info.create_csv(os.path.expanduser(info.create_directory('~/cowible/goldmine/ble_analisys/'+strftime("%y%m%d", localtime()))+'/'+strftime("%H%M", localtime())+'.csv'))
 
     scanner = btle.Scanner(arg.hci).withDelegate(ScanPrint(arg))
+    t_people = ReadPeople.ReadPeople(people)
+    t_people.start()
 
-    print (ANSI_RED + "Scanning for devices..." + ANSI_OFF)
-    devices = scanner.scan(arg.timeout)
+    while True:
+        print (ANSI_RED + "Scanning for devices..." + ANSI_OFF)
+        devices = scanner.scan(arg.timeout)
+
+
+        while (not people.empty()):
+            #gut the queue and choose the last value
+            people_number = people.get()
+
+
+        info.printInfo(bluetooth_devices)
+
+        bt_tree = info.create_dev_tree(bluetooth_devices)
+        print("Number of people: ", people_number)
+        
+        write_csv(bt_tree, people_number, datetime.now())
+
 
     if arg.discover:
         print (ANSI_RED + "Discovering services..." + ANSI_OFF)
@@ -298,7 +211,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    pp.pprint(bluetooth_devices)
-    printInfo(bluetooth_devices)
-
-    create_dev_tree(bluetooth_devices)
