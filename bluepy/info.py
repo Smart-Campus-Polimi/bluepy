@@ -33,7 +33,7 @@ def create_dev_tree(bt_devices):
                 if val['addr_type'] == 'public':
                     c_nm_pub += 1
                     if val['name'] == None:
-                        c_mm_p_unam += 1
+                        c_nm_p_unam += 1
                     else:
                         c_nm_p_nam += 1
                 elif val['addr_type'] == 'random':
@@ -92,17 +92,26 @@ def create_directory(directory_path):
 	return directory_path
 
 def create_csv(name):
-	print "file name: ", name
 	with open(os.path.expanduser(name), 'w') as csvfile:
 		filewriter = csv.writer(csvfile, delimiter=',',
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
-		filewriter.writerow(['timestamp','non_connectable','connectable',
+		filewriter.writerow(['timestamp', 'real_people','non_connectable','connectable',
 										'con_manufacturer', 'con_man_random', 'con_man_rand_named', 'con_man_rand_unnamed',
 										'con_man_public', 'con_man_pub_named', 'con_man_pub_unnamed',
 										'con_nonmanufactured', 'con_nonman_random', 'con_nonman_rand_named', 'con_nonman_rand_unnamed',
 										'con_nonman_public', 'con_nonman_pub_named', 'con_nonman_pub_unnamed'])
-def write_data(bt_list, people):
-	pass
+
+	return name
+
+def write_data(bt_list, people, ts, name):
+	bt_list.insert(0, int(people))
+	bt_list.insert(0, str(ts)[:-7])
+
+
+	with open(os.path.expanduser(name), 'a') as csvfile:
+		filewriter = csv.writer(csvfile, delimiter=',',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+		filewriter.writerow(bt_list)
 
 def printInfo(bt_devices):
     n_conn = 0
