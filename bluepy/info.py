@@ -79,8 +79,8 @@ def create_dev_tree(bt_devices):
     print "\t\t\tunnamed: ", c_nm_p_unam
     print "non conn", non_conn
 
-    return [conn, c_manuf, c_m_rand, c_m_r_nam, c_m_r_unam, c_m_pub, c_m_p_nam, c_m_p_unam, 
-    		c_non_manuf, c_nm_rand, c_nm_r_nam, c_nm_r_unam, c_nm_pub, c_nm_p_nam, c_nm_p_unam, non_conn]
+    return [conn, non_conn, c_manuf, c_m_rand, c_m_r_nam, c_m_r_unam, c_m_pub, c_m_p_nam, c_m_p_unam, 
+    		c_non_manuf, c_nm_rand, c_nm_r_nam, c_nm_r_unam, c_nm_pub, c_nm_p_nam, c_nm_p_unam]
 
 def create_directory(directory_path):
 	try:
@@ -95,7 +95,7 @@ def create_csv(name):
 	with open(os.path.expanduser(name), 'w') as csvfile:
 		filewriter = csv.writer(csvfile, delimiter=',',
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
-		filewriter.writerow(['timestamp', 'real_people','non_connectable','connectable',
+		filewriter.writerow(['timestamp','real_people','connectable','non_connectable',
 										'con_manufacturer', 'con_man_random', 'con_man_rand_named', 'con_man_rand_unnamed',
 										'con_man_public', 'con_man_pub_named', 'con_man_pub_unnamed',
 										'con_nonmanufactured', 'con_nonman_random', 'con_nonman_rand_named', 'con_nonman_rand_unnamed',

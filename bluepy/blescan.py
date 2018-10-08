@@ -18,6 +18,8 @@ from functools import partial
 
 import ReadPeople
 
+global bluetooth_devices
+global bluetooth_device_all
 bluetooth_devices = {}
 bluetooth_device_all = {}
 
@@ -87,6 +89,11 @@ class ScanPrint(btle.DefaultDelegate):
 		self.opts = opts
 
 	def handleDiscovery(self, dev, isNewDev, isNewData):
+		global bluetooth_devices
+		global bluetooth_device_all
+		bluetooth_devices = {}
+		bluetooth_device_all = {}
+
 		if isNewDev:
 			status = "new"
 			devName = None
@@ -130,6 +137,8 @@ class ScanPrint(btle.DefaultDelegate):
 
 		is_in = False
 		in_list = []
+
+
 
 		bluetooth_device_all[dev.addr] = \
 				{'rssi': dev.rssi,
@@ -199,9 +208,10 @@ def main():
 			#gut the queue and choose the last value
 			people_number = people.get()
 
-
+		global bluetooth_devices
 		info.printInfo(bluetooth_devices)
 
+		global bluetooth_devices
 		bt_tree = info.create_dev_tree(bluetooth_devices)
 		print("Number of people: ", people_number)
 		
