@@ -89,11 +89,6 @@ class ScanPrint(btle.DefaultDelegate):
 		self.opts = opts
 
 	def handleDiscovery(self, dev, isNewDev, isNewData):
-		global bluetooth_devices
-		global bluetooth_device_all
-		bluetooth_devices = {}
-		bluetooth_device_all = {}
-
 		if isNewDev:
 			status = "new"
 			devName = None
@@ -120,6 +115,7 @@ class ScanPrint(btle.DefaultDelegate):
 			   )
 		'''
 
+		manufacturer = None
 		for (sdid, desc, val) in dev.getScanData():
 			if sdid in [8, 9]:
 			   # print ('\t' + desc + ': \'' + ANSI_CYAN + val + ANSI_OFF + '\'')
@@ -168,7 +164,7 @@ class ScanPrint(btle.DefaultDelegate):
 
 
 def main():
-
+	#sudo service bluetooth restart
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-i', '--hci', action='store', type=int, default=0,
 						help='Interface number for scan')
@@ -211,8 +207,11 @@ def main():
 		global bluetooth_devices
 		info.printInfo(bluetooth_devices)
 
-		global bluetooth_devices
 		bt_tree = info.create_dev_tree(bluetooth_devices)
+		global bluetooth_device_all
+		bluetooth_devices = {}
+		bluetooth_device_all = {}
+		print(bluetooth_device_all)
 		print("Number of people: ", people_number)
 		
 		info.write_data(bt_tree, people_number, datetime.now(), name_file)
