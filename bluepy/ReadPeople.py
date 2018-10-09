@@ -10,8 +10,15 @@ class ReadPeople(threading.Thread):
 		self.is_running = True
 
 	def run(self):
+		#self.prec = None
 		while self.is_running:
-			self.people = raw_input("How many people? ")
+			try:
+				self.people = raw_input("How many people? ")
+				#self.prec = self.people
+			except UnicodeEncodeError:
+				self.people = 0
+				pass
+			
 			self.queue.put(self.people)
 
 
